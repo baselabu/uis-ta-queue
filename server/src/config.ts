@@ -31,5 +31,6 @@ export const config = {
   rateLimit: { max: num(process.env.RATE_LIMIT_MAX, 40), windowMs: num(process.env.RATE_LIMIT_WINDOW_MS, 10_000) },
 
   maxNameLength: 32,
+  maxTitleLength: 60,
   maxRoomsPerServer: num(process.env.MAX_ROOMS, 500),
 };

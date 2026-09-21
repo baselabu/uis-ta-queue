@@ -58,12 +58,20 @@ export interface Room {
   nextTicketNumber: number;
   approvedCount: number;
   helpedCount: number;
+  /** What the session is for, e.g. "DAT120 oving 3". Empty when the host skipped it. */
+  title: string;
   createdAt: number;
   /** Timestamp since which the room has been both unattended and empty; null otherwise. */
   emptySince: number | null;
 }
 
 const CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
+
+/** Optional, so a missing title is empty rather than an error. */
+export function cleanTitle(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  return raw.replace(CONTROL_CHARS, " ").replace(/\s+/g, " ").trim().slice(0, config.maxTitleLength);
+}
 
 export function cleanName(raw: unknown): string {
   if (typeof raw !== "string") throw new RoomError("Enter a name.");
@@ -84,7 +92,7 @@ export class RoomManager {
 
   // --------------------------------------------------------------- lifecycle
 
-  createRoom(hostName: string): { room: Room; host: TA } {
+  createRoom(hostName: string, title?: unknown): { room: Room; host: TA } {
     if (this.rooms.size >= config.maxRoomsPerServer) {
       throw new RoomError("The server is at capacity. Try again shortly.");
     }
@@ -104,6 +112,7 @@ export class RoomManager {
       nextTicketNumber: 1,
       approvedCount: 0,
       helpedCount: 0,
+      title: cleanTitle(title),
       createdAt: Date.now(),
       emptySince: Date.now(),
     };
@@ -248,9 +257,25 @@ export class RoomManager {
 
   joinQueue(room: Room, rawName: string, queue: unknown): Student {
     if (queue !== "approval" && queue !== "help") throw new RoomError("Pick a queue.");
+    const name = cleanName(rawName);
+
+    // A student whose phone lost its saved ticket would otherwise take a second number and
+    // appear on the board twice. Their first one is still valid, so point them back at it.
+    const already = [...room.students.values()].find(
+      (s) =>
+        (s.status === "waiting" || s.status === "assigned") &&
+        s.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (already) {
+      throw new RoomError(
+        `${already.name} is already in the queue as number ${already.ticket}. If that is you, ` +
+          `you still have your place. If not, add a last name and try again.`,
+      );
+    }
+
     const student: Student = {
       id: nanoid(),
-      name: cleanName(rawName),
+      name,
       ticket: room.nextTicketNumber++, // one counter for the whole room; never reused
       queue,
       status: "waiting",

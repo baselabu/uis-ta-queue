@@ -7,11 +7,13 @@ const publicUrl = import.meta.env.VITE_PUBLIC_URL || window.location.origin;
 
 export function JoinBanner({
   studentCode,
+  title,
   taCode,
   onClose,
   onPresent,
 }: {
   studentCode: string;
+  title?: string;
   taCode?: string;
   onClose?: () => void;
   /** Host only: opens the read-only board in a window to drag onto the projector. */
@@ -50,6 +52,11 @@ export function JoinBanner({
     <header className="bg-ink text-paper">
       <div className="mx-auto max-w-[1600px] px-5 sm:px-8 py-6 sm:py-8 flex flex-wrap items-center gap-x-10 gap-y-6">
         <div className="min-w-0">
+          {title && (
+            <h1 className="text-[clamp(1.75rem,4vw,3rem)] font-black tracking-tight leading-tight mb-1">
+              {title}
+            </h1>
+          )}
           <p className="text-paper/60 text-base sm:text-lg font-medium">
             Join at <span className="text-paper/90">{joinUrl.replace(/^https?:\/\//, "")}</span>
           </p>

@@ -11,6 +11,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("choose");
   const [name, setName] = useState(lastName.get());
+  const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -21,7 +22,7 @@ export default function Landing() {
     setError("");
     try {
       await resetSocket();
-      const room = await call<CreateRoomResult>("room:create", { taName: name });
+      const room = await call<CreateRoomResult>("room:create", { taName: name, title });
       lastName.set(name.trim());
       taSession.set({ studentCode: room.studentCode, taId: room.taId, name: name.trim(), isHost: true });
       navigate(`/room/${room.studentCode}`);
@@ -88,6 +89,16 @@ export default function Landing() {
                   maxLength={32}
                   placeholder="Example: Sara"
                   onChange={(e) => setName(e.target.value)}
+                />
+                <Field
+                  label="What is this session for?"
+                  name="room-title"
+                  value={title}
+                  maxLength={60}
+                  autoComplete="off"
+                  placeholder="Example: DAT120 oving 3"
+                  hint="Shown to students so they know they are in the right room. Optional."
+                  onChange={(e) => setTitle(e.target.value)}
                 />
                 <Button type="submit" size="lg" disabled={busy || !name.trim()}>
                   {busy ? "Creating room…" : "Create room"}

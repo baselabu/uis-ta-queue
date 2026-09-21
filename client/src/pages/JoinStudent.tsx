@@ -17,9 +17,18 @@ export default function JoinStudent() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [closedReason, setClosedReason] = useState("");
+  const [title, setTitle] = useState("");
 
   // Runs again on every reconnect, so reopening the phone shows the live ticket.
   useReattach(async () => {
+    // Binds nothing, so it is safe whether we go on to resume a ticket or take a new one.
+    try {
+      const info = await call<{ title: string }>("room:info", { studentCode: code });
+      setTitle(info.title);
+    } catch {
+      /* a bad code is reported properly when they try to join */
+    }
+
     const saved = studentSession.get(code);
     if (!saved) return setPhase("form");
     try {
@@ -99,7 +108,7 @@ export default function JoinStudent() {
 
   if (phase === "queued") {
     return me ? (
-      <Ticket me={me} onLeave={leave} />
+      <Ticket me={me} title={title} onLeave={leave} />
     ) : (
       <Screen>
         <div className="flex-1 grid place-items-center text-muted">Getting your number…</div>
@@ -111,8 +120,17 @@ export default function JoinStudent() {
     <Screen>
       <div className="flex-1 flex items-center justify-center px-5 py-10">
         <div className="w-full max-w-md">
-          <p className="text-sm font-semibold text-muted">Room</p>
-          <p className="num text-4xl font-black tracking-[0.2em]">{code}</p>
+          {title ? (
+            <>
+              <h1 className="text-3xl font-black tracking-tight">{title}</h1>
+              <p className="num text-lg font-bold text-muted tracking-[0.2em]">{code}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-muted">Room</p>
+              <p className="num text-4xl font-black tracking-[0.2em]">{code}</p>
+            </>
+          )}
 
           <div className="mt-8 rounded-2xl bg-paper border border-line p-6 sm:p-8 flex flex-col gap-6">
             <Field
@@ -161,7 +179,7 @@ export default function JoinStudent() {
   );
 }
 
-function Ticket({ me, onLeave }: { me: StudentState; onLeave: () => void }) {
+function Ticket({ me, title, onLeave }: { me: StudentState; title: string; onLeave: () => void }) {
   const accent = me.queue === "approval" ? "bg-approval" : "bg-help";
 
   if (me.status === "removed") {
@@ -225,9 +243,12 @@ function Ticket({ me, onLeave }: { me: StudentState; onLeave: () => void }) {
   return (
     <Screen>
       <div className="flex-1 flex flex-col">
-        <div className={`${accent} text-paper px-6 py-4 flex items-baseline justify-between`}>
-          <span className="text-lg font-bold">{QUEUE_LABEL[me.queue]}</span>
-          <span className="text-lg font-medium opacity-90">{me.name}</span>
+        <div className={`${accent} text-paper px-6 py-4`}>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-lg font-bold">{QUEUE_LABEL[me.queue]}</span>
+            <span className="text-lg font-medium opacity-90 truncate">{me.name}</span>
+          </div>
+          {title && <p className="text-base opacity-80 truncate">{title}</p>}
         </div>
 
         <div className="flex-1 grid place-items-center px-6 py-10 text-center">

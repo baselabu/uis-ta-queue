@@ -154,6 +154,7 @@ export default function Dashboard() {
     <Screen>
       <JoinBanner
         studentCode={code}
+        title={state?.title}
         taCode={me.taCode}
         onClose={me.isHost ? closeRoom : undefined}
         onPresent={me.isHost ? () => openProjector(code) : undefined}

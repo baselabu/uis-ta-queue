@@ -120,9 +120,9 @@ export function registerHandlers(io: TAQueueServer, rooms: RoomManager): void {
   io.on("connection", (socket) => {
     socket.on(
       "room:create",
-      handle(socket, "room:create", ({ taName }: { taName: string }) => {
+      handle(socket, "room:create", ({ taName, title }: { taName: string; title?: string }) => {
         assertFree(socket);
-        const { room, host } = rooms.createRoom(taName);
+        const { room, host } = rooms.createRoom(taName, title);
         bind(socket, room, { roomId: room.id, role: "host", taId: host.id });
         rooms.attachTA(room, host, socket.id);
         return {
@@ -226,6 +226,15 @@ export function registerHandlers(io: TAQueueServer, rooms: RoomManager): void {
         }
         rooms.closeRoom(room, "The host closed this room.");
         return { result: null };
+      }),
+    );
+
+    socket.on(
+      "room:info",
+      handle(socket, "room:info", ({ studentCode }: { studentCode: string }) => {
+        // Deliberately binds nothing: the join page asks this before anyone has joined.
+        const room = rooms.getByStudentCode(studentCode);
+        return { result: { studentCode: room.studentCode, title: room.title } };
       }),
     );
 

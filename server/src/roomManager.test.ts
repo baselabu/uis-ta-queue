@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { RoomError, RoomManager, cleanName, type Room } from "./roomManager.js";
+import { RoomError, RoomManager, cleanName, cleanTitle, type Room } from "./roomManager.js";
 import { roomState, studentState } from "./views.js";
 import { config } from "./config.js";
 
@@ -28,6 +28,21 @@ describe("room creation", () => {
 
   test("looking up an unknown code fails with a readable message", () => {
     assert.throws(() => new RoomManager().getByStudentCode("000000"), RoomError);
+  });
+});
+
+describe("room title", () => {
+  test("the host names the session and everyone in the room sees it", () => {
+    const { room } = new RoomManager().createRoom("Sara", "  DAT120   oving 3  ");
+
+    assert.equal(room.title, "DAT120 oving 3", "whitespace is tidied");
+    assert.equal(roomState(room).title, "DAT120 oving 3");
+  });
+
+  test("a room without a title is fine", () => {
+    assert.equal(new RoomManager().createRoom("Sara").room.title, "");
+    assert.equal(cleanTitle(undefined), "");
+    assert.equal(cleanTitle("x".repeat(500)).length, config.maxTitleLength);
   });
 });
 
@@ -59,6 +74,29 @@ describe("ticket numbering", () => {
 
     assert.deepEqual(tickets(room, "approval"), [1, 3, 4]);
     assert.equal(rooms.joinQueue(room, "E", "approval").ticket, 5);
+  });
+
+  test("a student who lost their saved ticket cannot take a second number", () => {
+    const rooms = new RoomManager();
+    const { room } = rooms.createRoom("Host");
+    const first = rooms.joinQueue(room, "Omar", "approval");
+
+    // Same person, phone storage gone, typing their name again.
+    assert.throws(() => rooms.joinQueue(room, "  omar ", "help"), /already in the queue as number 1/);
+    assert.deepEqual(tickets(room, "approval"), [first.ticket]);
+    assert.equal(tickets(room, "help").length, 0);
+    assert.equal(room.nextTicketNumber, 2, "and no number is burned on the refusal");
+  });
+
+  test("the name frees up once they are finished or removed", () => {
+    const rooms = new RoomManager();
+    const { room, host } = rooms.createRoom("Sara");
+    const first = rooms.joinQueue(room, "Omar", "approval");
+    rooms.take(room, host, first.id);
+    rooms.complete(room, host);
+
+    const second = rooms.joinQueue(room, "Omar", "help");
+    assert.equal(second.ticket, 2, "a fresh number, not the old one");
   });
 
   test("a student sees how many hold a lower ticket in their own queue", () => {

@@ -26,6 +26,8 @@ export interface TAView {
 /** Public room state. Broadcast to every socket in the room — never contains taCode. */
 export interface RoomState {
   studentCode: string;
+  /** What the session is for, e.g. "DAT120 oving 3". Empty when the host skipped it. */
+  title: string;
   approval: StudentView[];
   help: StudentView[];
   tas: TAView[];
@@ -72,7 +74,9 @@ export interface JoinStudentResult {
 export type Ack<T> = { ok: true; data: T } | { ok: false; error: string };
 
 export interface ClientToServer {
-  "room:create": (p: { taName: string }, ack: (r: Ack<CreateRoomResult>) => void) => void;
+  "room:create": (p: { taName: string; title?: string }, ack: (r: Ack<CreateRoomResult>) => void) => void;
+  /** Public lookup with no membership: lets the join page name the room before you join. */
+  "room:info": (p: { studentCode: string }, ack: (r: Ack<{ studentCode: string; title: string }>) => void) => void;
   "room:close": (p: Record<string, never>, ack: (r: Ack<null>) => void) => void;
   /** Read-only subscribe, used by the projector window. Answers with the current state. */
   "room:watch": (p: { studentCode: string }, ack: (r: Ack<RoomState>) => void) => void;

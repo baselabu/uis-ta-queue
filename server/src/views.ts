@@ -36,6 +36,7 @@ export function roomState(room: Room): RoomState {
 
   return {
     studentCode: room.studentCode,
+    title: room.title,
     approval: waiting.filter((s) => s.queue === "approval").map(toStudentView),
     help: waiting.filter((s) => s.queue === "help").map(toStudentView),
     tas,

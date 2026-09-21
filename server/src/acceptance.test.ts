@@ -340,6 +340,49 @@ describe("reconnecting", () => {
     assert.equal(host.room?.tas.length, 2, "resuming does not create a second TA");
   });
 
+  test("a refreshed phone shows the live ticket instead of the join form", async () => {
+    const host = await open();
+    const created = await ok<{ studentCode: string }>(host, "room:create", {
+      taName: "Sara",
+      title: "DAT120 oving 3",
+    });
+
+    const phone = await open();
+    const joined = await ok<{ studentId: string; ticket: number }>(phone, "student:join", {
+      studentCode: created.studentCode,
+      name: "Omar",
+      queue: "approval",
+    });
+    await waitFor(() => (host.room?.approval.length ?? 0) === 1, "Omar on the board");
+
+    // The phone is locked for a while, then the page is reopened: a brand new socket.
+    phone.socket.disconnect();
+    await new Promise((r) => setTimeout(r, 300));
+
+    const reopened = await open();
+    const info = await ok<{ title: string }>(reopened, "room:info", { studentCode: created.studentCode });
+    assert.equal(info.title, "DAT120 oving 3", "the join page can name the room before joining");
+
+    const back = await ok<{ ticket: number }>(reopened, "student:resume", {
+      studentCode: created.studentCode,
+      studentId: joined.studentId,
+    });
+    assert.equal(back.ticket, joined.ticket, "same number, no rejoin");
+    await waitFor(() => reopened.me?.ticket === joined.ticket, "the live ticket arriving");
+    assert.equal(host.room?.approval.length, 1, "and still exactly one entry on the board");
+
+    // Even if their storage was wiped and they type their name again, no second entry.
+    const wiped = await open();
+    const again = await send(wiped, "student:join", {
+      studentCode: created.studentCode,
+      name: "Omar",
+      queue: "approval",
+    });
+    assert.equal(again.ok, false);
+    assert.match(again.ok ? "" : again.error, /already in the queue as number 1/);
+    assert.equal(host.room?.approval.length, 1, "the board still shows one Omar");
+  });
+
   test("a stray second tab cannot make a working TA look away", async () => {
     const host = await open();
     const created = await ok<{ studentCode: string; taCode: string; taId: string }>(host, "room:create", {

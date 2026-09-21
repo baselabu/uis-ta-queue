@@ -40,18 +40,23 @@ Everything runs in one Node process on `PORT` (default 3001). Open
 
 ## How a session runs
 
-1. A TA creates a room and becomes the **host**. They get a 6-digit **student code** and a
-   separate 6-digit **TA code**.
+1. A TA creates a room and becomes the **host**, naming what the session is for (say
+   `DAT120 oving 3`). They get a 6-digit **student code** and a separate 6-digit **TA
+   code**. The title heads the board, the projector view and the student join page, so
+   nobody queues in the wrong room.
 2. Students open `/join/<student code>` — by scanning the QR code or typing the digits —
    enter a name, and choose **Assignment approval** or **I need help**.
-3. Every student who joins gets the next number from **one counter shared by both queues**,
+3. One person holds one place: a second join under a name already waiting is refused and
+   told which number they already have, so a student who lost their saved ticket cannot end
+   up on the board twice.
+4. Every student who joins gets the next number from **one counter shared by both queues**,
    so `#1 #2` in Approval and `#3` in Help means the Help student arrived third. Numbers
    are never reused, even when someone leaves.
-4. Any TA can click any waiting student in either queue. The server decides who gets them;
+5. Any TA can click any waiting student in either queue. The server decides who gets them;
    the second TA to click sees "already taken".
-5. The TA calls the name out loud, then clicks **Complete** — which adds to either the
+6. The TA calls the name out loud, then clicks **Complete** — which adds to either the
    Approved or the Helped count — or **Remove** if nobody comes.
-6. The host clicks **Close room**. Everyone is told, and the room is deleted.
+7. The host clicks **Close room**. Everyone is told, and the room is deleted.
 
 ---
 
@@ -103,6 +108,7 @@ It is not part of the broadcast room state, so no student client ever receives i
 | Client sends      | Server answers with                       |
 | ----------------- | ----------------------------------------- |
 | `room:create`     | student code, TA code, your TA id         |
+| `room:info`       | the room title, before anyone joins       |
 | `ta:join`         | your TA id (TA code only if you are host) |
 | `ta:resume`       | the same, after a refresh                 |
 | `ta:take`         | ok, or why not                            |
@@ -233,7 +239,7 @@ Requirements for the host or reverse proxy:
 ## Tests
 
 ```bash
-npm test         # 46 tests: unit + full socket-level acceptance run
+npm test         # 51 tests: unit + full socket-level acceptance run
 npm run typecheck
 ```
 

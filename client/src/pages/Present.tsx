@@ -54,7 +54,7 @@ export default function Present() {
 
   return (
     <Screen>
-      <JoinBanner studentCode={code} />
+      <JoinBanner studentCode={code} title={state?.title} />
 
       <div className="flex-1 mx-auto w-full max-w-[1600px] px-5 sm:px-8 py-6 flex flex-col gap-6">
         <section className="grid grid-cols-2 gap-6 rounded-2xl bg-paper border border-line px-8 py-6">
